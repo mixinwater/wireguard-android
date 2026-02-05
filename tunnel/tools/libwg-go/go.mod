@@ -2,7 +2,7 @@ module golang.zx2c4.com/wireguard/android
 
 go 1.23.1
 
-replace golang.zx2c4.com/wireguard => github.com/mixinwater/wireguard-go v0.0.0-20260203072747-2e3ae4e24f5a
+replace golang.zx2c4.com/wireguard => github.com/mixinwater/wireguard-go v0.0.0-20260205125116-63f423cd5b23
 
 require (
 	golang.org/x/sys v0.33.0
