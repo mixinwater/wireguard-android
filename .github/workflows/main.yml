@@ -9,6 +9,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
+        ref: master
         submodules: recursive
         fetch-depth: 0
         token: ${{ secrets.GITHUB_TOKEN }}
