@@ -46,7 +46,16 @@ jobs:
         go mod tidy
     
     - name: Build release
-      run: ./gradlew assembleRelease
+      run: ./gradlew assembleRelease --stacktrace --info 2>&1 | tee build.log; exit ${PIPESTATUS[0]}
+
+    - name: Print Kotlin compilation errors on failure
+      if: failure()
+      run: |
+        echo "=== KOTLIN COMPILATION ERRORS ==="
+        grep -E "^e:|error:|Unresolved reference|None of the following|Overload resolution" build.log || echo "No grep matches found"
+        echo ""
+        echo "=== LAST 200 LINES OF BUILD LOG ==="
+        tail -200 build.log
     
     - name: List APK files
       run: |
