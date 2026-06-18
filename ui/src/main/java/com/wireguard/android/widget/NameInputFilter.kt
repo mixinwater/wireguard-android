@@ -10,7 +10,9 @@ import android.text.Spanned
 import com.wireguard.android.backend.Tunnel
 
 /**
- * InputFilter for entering WireGuard configuration names (Linux interface names).
+ * InputFilter for entering WireGuard tunnel names.
+ * Allows most characters including spaces and Unicode, but blocks filesystem-unsafe
+ * characters (/ and \) and enforces a maximum length.
  */
 class NameInputFilter : InputFilter {
     override fun filter(
@@ -25,8 +27,8 @@ class NameInputFilter : InputFilter {
         for (sIndex in sStart until sEnd) {
             val c = source[sIndex]
             val dIndex = dStart + (sIndex - sStart)
-            // Restrict characters to those valid in interfaces.
             // Ensure adding this character does not push the length over the limit.
+            // Block filesystem-unsafe characters (/ and \).
             if (dIndex < Tunnel.NAME_MAX_LENGTH && isAllowed(c) &&
                 dLength + (sIndex - sStart) < Tunnel.NAME_MAX_LENGTH
             ) {
@@ -40,7 +42,7 @@ class NameInputFilter : InputFilter {
     }
 
     companion object {
-        private fun isAllowed(c: Char) = Character.isLetterOrDigit(c) || "_=+.-".indexOf(c) >= 0
+        private fun isAllowed(c: Char) = c != '/' && c != '\\' && c != '\u0000'
 
         @JvmStatic
         fun newInstance() = NameInputFilter()

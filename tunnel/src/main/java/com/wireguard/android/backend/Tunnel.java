@@ -15,8 +15,9 @@ import java.util.regex.Pattern;
 
 @NonNullForAll
 public interface Tunnel {
-    int NAME_MAX_LENGTH = 15;
-    Pattern NAME_PATTERN = Pattern.compile("[a-zA-Z0-9_=+.-]{1,15}");
+    int NAME_MAX_LENGTH = 200;
+    Pattern NAME_PATTERN = Pattern.compile("[^/\\\\\\x00]{1,200}");
+    String INTERFACE_NAME = "wg-android";
 
     static boolean isNameInvalid(final CharSequence name) {
         return !NAME_PATTERN.matcher(name).matches();

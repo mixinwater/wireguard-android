@@ -46,6 +46,7 @@ public final class WgQuickBackend implements Backend {
     private final RootShell rootShell;
     private final Map<Tunnel, Config> runningConfigs = new HashMap<>();
     private final ToolsInstaller toolsInstaller;
+    @Nullable private Tunnel currentTunnel;
     private boolean multipleTunnels;
 
     public WgQuickBackend(final Context context, final RootShell rootShell, final ToolsInstaller toolsInstaller) {
@@ -60,8 +61,11 @@ public final class WgQuickBackend implements Backend {
 
     @Override
     public Set<String> getRunningTunnelNames() {
+        if (currentTunnel != null) {
+            return Set.of(currentTunnel.getName());
+        }
+        // Fallback: check if the interface is actually running in the kernel.
         final List<String> output = new ArrayList<>();
-        // Don't throw an exception here or nothing will show up in the UI.
         try {
             toolsInstaller.ensureToolsAvailable();
             if (rootShell.run(output, "wg show interfaces") != 0 || output.isEmpty())
@@ -70,13 +74,19 @@ public final class WgQuickBackend implements Backend {
             Log.w(TAG, "Unable to enumerate running tunnels", e);
             return Collections.emptySet();
         }
-        // wg puts all interface names on the same line. Split them into separate elements.
-        return Set.of(output.get(0).split(" "));
+        // Check if our fixed interface is among the running ones.
+        final Set<String> ifaces = Set.of(output.get(0).split(" "));
+        if (ifaces.contains(Tunnel.INTERFACE_NAME)) {
+            // Interface is running but we lost track — return empty since we
+            // don't know which tunnel config it belongs to.
+            return Collections.emptySet();
+        }
+        return Collections.emptySet();
     }
 
     @Override
     public State getState(final Tunnel tunnel) {
-        return getRunningTunnelNames().contains(tunnel.getName()) ? State.UP : State.DOWN;
+        return currentTunnel == tunnel ? State.UP : State.DOWN;
     }
 
     @Override
@@ -84,7 +94,7 @@ public final class WgQuickBackend implements Backend {
         final Statistics stats = new Statistics();
         final Collection<String> output = new ArrayList<>();
         try {
-            if (rootShell.run(output, String.format("wg show '%s' dump", tunnel.getName())) != 0)
+            if (rootShell.run(output, String.format("wg show '%s' dump", Tunnel.INTERFACE_NAME)) != 0)
                 return stats;
         } catch (final Exception ignored) {
             return stats;
@@ -182,7 +192,7 @@ public final class WgQuickBackend implements Backend {
 
         Objects.requireNonNull(config, "Trying to set state up with a null config");
 
-        final File tempFile = new File(localTemporaryDir, tunnel.getName() + ".conf");
+        final File tempFile = new File(localTemporaryDir, Tunnel.INTERFACE_NAME + ".conf");
         try (final FileOutputStream stream = new FileOutputStream(tempFile, false)) {
             stream.write(config.toWgQuickString().getBytes(StandardCharsets.UTF_8));
         }
@@ -196,10 +206,14 @@ public final class WgQuickBackend implements Backend {
         if (result != 0)
             throw new BackendException(Reason.WG_QUICK_CONFIG_ERROR_CODE, result);
 
-        if (state == State.UP)
+        if (state == State.UP) {
             runningConfigs.put(tunnel, config);
-        else
+            currentTunnel = tunnel;
+        } else {
             runningConfigs.remove(tunnel);
+            if (currentTunnel == tunnel)
+                currentTunnel = null;
+        }
 
         tunnel.onStateChange(state);
     }
