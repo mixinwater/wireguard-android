@@ -1,7 +1,9 @@
 name: Android Release Build
 on:
-  release:
-    types: [published]
+  push:
+    branches:
+      - master
+  workflow_dispatch:
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -85,11 +87,8 @@ jobs:
           --out ui/build/outputs/apk/release/app-release-signed.apk \
           $APK_FILE
     
-    - name: Upload APK to GitHub Release
-      uses: svenstaro/upload-release-action@v2
+    - name: Upload APK as artifact
+      uses: actions/upload-artifact@v4
       with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: ui/build/outputs/apk/release/app-release-signed.apk
-        asset_name: ${{ steps.filename.outputs.APK_NAME }}
-        tag: ${{ github.ref }}
-        overwrite: true
+        name: ${{ steps.filename.outputs.APK_NAME }}
+        path: ui/build/outputs/apk/release/app-release-signed.apk
