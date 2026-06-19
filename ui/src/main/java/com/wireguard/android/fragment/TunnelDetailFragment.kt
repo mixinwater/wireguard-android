@@ -11,6 +11,7 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.core.view.MenuProvider
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.Lifecycle
@@ -20,6 +21,7 @@ import com.wireguard.android.backend.Tunnel
 import com.wireguard.android.databinding.TunnelDetailFragmentBinding
 import com.wireguard.android.databinding.TunnelDetailPeerBinding
 import com.wireguard.android.model.ObservableTunnel
+import com.wireguard.android.util.AdminKnobs
 import com.wireguard.android.util.QuantityFormatter
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -33,11 +35,31 @@ class TunnelDetailFragment : BaseFragment(), MenuProvider {
     private var timerActive = true
 
     override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
-        return false
+        return when (menuItem.itemId) {
+            R.id.menu_action_qr_code -> {
+                if (AdminKnobs.disableConfigExport) {
+                    Toast.makeText(activity, R.string.config_export_disabled, Toast.LENGTH_SHORT).show()
+                    return true
+                }
+                val tunnel = binding?.tunnel ?: return true
+                lifecycleScope.launch {
+                    try {
+                        val config = tunnel.getConfigAsync()
+                        val configText = config.toWgQuickString()
+                        QrCodeDialogFragment.newInstance(tunnel.name, configText)
+                            .show(parentFragmentManager, "QR_CODE_DIALOG")
+                    } catch (_: Throwable) {
+                    }
+                }
+                true
+            }
+            else -> false
+        }
     }
 
     override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
         menuInflater.inflate(R.menu.tunnel_detail, menu)
+        menu.findItem(R.id.menu_action_qr_code)?.isVisible = !AdminKnobs.disableConfigExport
     }
 
     override fun onCreateView(
