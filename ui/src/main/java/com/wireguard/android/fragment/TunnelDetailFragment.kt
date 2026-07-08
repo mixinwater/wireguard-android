@@ -45,7 +45,7 @@ class TunnelDetailFragment : BaseFragment(), MenuProvider {
                 lifecycleScope.launch {
                     try {
                         val config = tunnel.getConfigAsync()
-                        val configText = config.toWgQuickString()
+                        val configText = "# ${tunnel.name}\n${config.toWgQuickString()}"
                         QrCodeDialogFragment.newInstance(tunnel.name, configText)
                             .show(parentFragmentManager, "QR_CODE_DIALOG")
                     } catch (_: Throwable) {

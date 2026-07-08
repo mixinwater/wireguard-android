@@ -112,11 +112,23 @@ object TunnelImporter {
 
     fun importTunnel(parentFragmentManager: FragmentManager, configText: String, messageCallback: (CharSequence) -> Unit) {
         try {
+            // Extract a suggested tunnel name from a leading comment line (e.g. "# My Tunnel")
+            val lines = configText.lines()
+            val suggestedName = if (lines.isNotEmpty() && lines[0].trimStart().startsWith("#")) {
+                lines[0].trimStart().removePrefix("#").trim()
+            } else {
+                null
+            }
+
+            // Strip leading comment lines before parsing so Config.parse doesn't choke
+            val strippedConfigText = lines.dropWhile { it.isBlank() || it.trimStart().startsWith("#") }
+                .joinToString("\n")
+
             // Ensure the config text is parseable before proceeding…
-            Config.parse(ByteArrayInputStream(configText.toByteArray(StandardCharsets.UTF_8)))
+            Config.parse(ByteArrayInputStream(strippedConfigText.toByteArray(StandardCharsets.UTF_8)))
 
             // Config text is valid, now create the tunnel…
-            ConfigNamingDialogFragment.newInstance(configText).show(parentFragmentManager, null)
+            ConfigNamingDialogFragment.newInstance(strippedConfigText, suggestedName).show(parentFragmentManager, null)
         } catch (e: Throwable) {
             onTunnelImportFinished(emptyList(), listOf<Throwable>(e), messageCallback)
         }

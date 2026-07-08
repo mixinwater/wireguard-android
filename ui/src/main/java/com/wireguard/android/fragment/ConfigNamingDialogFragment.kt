@@ -58,6 +58,11 @@ class ConfigNamingDialogFragment : DialogFragment() {
         alertDialogBuilder.setTitle(R.string.import_from_qr_code)
         binding = ConfigNamingDialogFragmentBinding.inflate(activity.layoutInflater, null, false)
         binding?.apply {
+            val suggestedName = requireArguments().getString(KEY_SUGGESTED_NAME)
+            if (!suggestedName.isNullOrBlank()) {
+                tunnelNameText.setText(suggestedName)
+                tunnelNameText.setSelection(suggestedName.length)
+            }
             executePendingBindings()
             alertDialogBuilder.setView(root)
         }
@@ -70,10 +75,14 @@ class ConfigNamingDialogFragment : DialogFragment() {
 
     companion object {
         private const val KEY_CONFIG_TEXT = "config_text"
+        private const val KEY_SUGGESTED_NAME = "suggested_name"
 
-        fun newInstance(configText: String?): ConfigNamingDialogFragment {
+        fun newInstance(configText: String?, suggestedName: String? = null): ConfigNamingDialogFragment {
             val extras = Bundle()
             extras.putString(KEY_CONFIG_TEXT, configText)
+            if (suggestedName != null) {
+                extras.putString(KEY_SUGGESTED_NAME, suggestedName)
+            }
             val fragment = ConfigNamingDialogFragment()
             fragment.arguments = extras
             return fragment
